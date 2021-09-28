@@ -2425,13 +2425,10 @@ Only parent headings of the current heading remain visible."
     (setf (oref session drill-answer) nil)
     (org-save-outline-visibility t
       (save-restriction
-        ;(org-narrow-to-subtree)
-        ;(org-reveal)
         (org-show-subtree)
         (org-drill-narrow)
         (org-show-subtree)
-        (org-cycle-hide-drawers 'all)
-        (beginning-of-buffer)
+        (recenter)
 
         (let ((presentation-fn
                (cdr (assoc card-type org-drill-card-type-alist))))
