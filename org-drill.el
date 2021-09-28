@@ -65,8 +65,14 @@
   :group 'org-link)
 
 (defcustom org-drill-question-tag
-  "drill"
+  "q"
   "Tag for topics which are review topics."
+  :group 'org-drill
+  :type 'string)
+
+(defcustom org-drill-question-parent-tag
+  "qs"
+  "Tag for headers that contain review topics (first level only)."
   :group 'org-drill
   :type 'string)
 
@@ -273,8 +279,8 @@ This is a buffer-local variable.")
   "Character to edit the tags.")
 
 (defcustom org-drill-card-type-alist
-  '((nil org-drill-present-simple-card)
-    ("simple" org-drill-present-simple-card)
+  '((nil org-drill-present-simple-card nil t)
+    ("simple" org-drill-present-simple-card nil t)
     ("simpletyped" org-drill-present-simple-card-with-typed-answer)
     ("twosided" org-drill-present-two-sided-card nil t)
     ("multisided" org-drill-present-multi-sided-card nil t)
@@ -2027,7 +2033,7 @@ Note: does not actually alter the item."
   (org-drill-with-hidden-comments
    (org-drill-with-hidden-cloze-hints
     (org-drill-with-hidden-cloze-text
-     (org-drill-hide-all-subheadings-except nil)
+     ;(org-drill-hide-all-subheadings-except nil)
      (org-drill--show-latex-fragments)  ; overlay all LaTeX fragments with images
      (ignore-errors
        (org-display-inline-images t))
@@ -2390,6 +2396,20 @@ See `org-drill' for more details."
    (or (nth item (assoc tag org-drill-card-tags-alist))
        'ignore)))
 
+(defun org-drill-narrow ()
+  "Narrow the outline tree.
+Only parent headings of the current heading remain visible."
+  (interactive)
+  (let* ((tags (org-get-tags nil 'local)))
+    ;; Find the first heading with a :narrow: tag or the top level
+    ;; ancestor of the current heading and narrow to its region
+    (save-excursion
+      (while (org-up-heading-safe))
+      (org-narrow-to-subtree)
+      (outline-hide-subtree))
+    ;; Show only the ancestors of the current card
+    (org-show-set-visibility 'ancestors)))
+
 (defun org-drill-entry-f (session complete-func)
   (org-drill-goto-drill-entry-heading)
   ;;(unless (org-drill-part-of-drill-entry-p)
@@ -2405,9 +2425,13 @@ See `org-drill' for more details."
     (setf (oref session drill-answer) nil)
     (org-save-outline-visibility t
       (save-restriction
-        (org-narrow-to-subtree)
+        ;(org-narrow-to-subtree)
+        ;(org-reveal)
+        (org-show-subtree)
+        (org-drill-narrow)
         (org-show-subtree)
         (org-cycle-hide-drawers 'all)
+        (beginning-of-buffer)
 
         (let ((presentation-fn
                (cdr (assoc card-type org-drill-card-type-alist))))
@@ -2765,14 +2789,14 @@ STATUS is one of the following values:
        (cond
         ((not (org-drill-entry-p))
          nil)
-        ((and (org-drill-entry-empty-p)
-              (let* ((card-type (org-entry-get (point) "DRILL_CARD_TYPE" nil))
-                    (dat (cdr (assoc card-type org-drill-card-type-alist))))
-                (or (null card-type)
-                    (not (cl-third dat)))))
-         ;; body is empty, and this is not a card type where empty bodies are
-         ;; meaningful, so skip it.
-         nil)
+        ;; ((and (org-drill-entry-empty-p)
+        ;;       (let* ((card-type (org-entry-get (point) "DRILL_CARD_TYPE" nil))
+        ;;             (dat (cdr (assoc card-type org-drill-card-type-alist))))
+        ;;         (or (null card-type)
+        ;;             (not (cl-third dat)))))
+        ;;  ;; body is empty, and this is not a card type where empty bodies are
+        ;;  ;; meaningful, so skip it.
+        ;;  nil)
         ((null due)                     ; unscheduled - usually a skipped leech
          :unscheduled)
         ;; ((eql -1 due)
@@ -3856,6 +3880,35 @@ shuffling is done in place."
              (+ number-drill-entries
                 (+ (length org-drill-leitner-boxed-entries)
                    (length org-drill-leitner-unboxed-entries))))))
+
+(defun org-drill--add-tag (tag)
+  "Add TAG to the heading at point."
+  (org-set-tags
+   (cl-remove-duplicates
+    (cons tag (org-get-tags nil 'local))
+    :test #'string=)))
+
+(defun org-drill--tag-question-list-children ()
+  "Add q to qs direct child."
+  (let* ((curr-level (elt (org-heading-components) 0)))
+    (org-map-entries
+     (lambda()
+       (let* ((this-tags (s-concat "" (elt (org-heading-components) 5)))
+              (this-level (elt (org-heading-components) 0)))
+         (when (not (s-contains? org-drill-question-parent-tag this-tags))
+           (org-drill--add-tag org-drill-question-tag))))
+     (s-concat "+LEVEL=" (number-to-string (+ 1 curr-level)) "+" org-drill-question-parent-tag "-" org-drill-question-tag)
+     'tree)))
+
+(defun org-drill-tag-question-list-elements ()
+  "Add ~org-drill-question-tag~ tag to child of heading with the ~org-drill-question-parent-tag~ tag."
+  (interactive)
+  (org-map-entries
+   (lambda()
+     (let* ((this-tags (s-concat "" (elt (org-heading-components) 5))))
+       (when (s-contains? org-drill-question-parent-tag this-tags)
+         (org-drill--tag-question-list-children))
+   (s-concat "+" org-drill-question-parent-tag "-" org-drill-question-tag)))))
 
 (provide 'org-drill)
 ;;; org-drill.el ends here
