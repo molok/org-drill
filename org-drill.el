@@ -3907,5 +3907,10 @@ shuffling is done in place."
          (org-drill--tag-question-list-children))
    (s-concat "+" org-drill-question-parent-tag "-" org-drill-question-tag)))))
 
+(defun org-drill-last-session-report()
+  "Print last session report."
+  (interactive)
+  (org-drill-final-report org-drill-last-session))
+
 (provide 'org-drill)
 ;;; org-drill.el ends here
