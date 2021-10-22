@@ -281,6 +281,7 @@ This is a buffer-local variable.")
 (defcustom org-drill-card-type-alist
   '((nil org-drill-present-simple-card nil t)
     ("simple" org-drill-present-simple-card nil t)
+    ("titleonly" org-drill-present-titleonly-card nil t)
     ("simpletyped" org-drill-present-simple-card-with-typed-answer)
     ("twosided" org-drill-present-two-sided-card nil t)
     ("multisided" org-drill-present-multi-sided-card nil t)
@@ -2038,6 +2039,20 @@ Note: does not actually alter the item."
      (ignore-errors
        (org-display-inline-images t))
      (org-cycle-hide-drawers 'all)
+     (prog1 (org-drill-presentation-prompt session)
+       (org-drill-hide-subheadings-if 'org-drill-entry-p))))))
+
+(defun org-drill-present-titleonly-card (session)
+  "Present a titleonly card for SESSION."
+  (org-drill-with-hidden-comments
+   (org-drill-with-hidden-cloze-hints
+    (org-drill-with-hidden-cloze-text
+     ;(org-drill-hide-all-subheadings-except nil)
+     (org-drill--show-latex-fragments)  ; overlay all LaTeX fragments with images
+     (ignore-errors
+       (org-display-inline-images t))
+     (org-cycle-hide-drawers 'all)
+     (outline-hide-subtree)
      (prog1 (org-drill-presentation-prompt session)
        (org-drill-hide-subheadings-if 'org-drill-entry-p))))))
 
