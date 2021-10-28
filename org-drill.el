@@ -3900,15 +3900,18 @@ shuffling is done in place."
     (cons tag (org-get-tags nil 'local))
     :test #'string=)))
 
-(defun org-drill--tag-question-list-children ()
-  "Add q to qs direct child."
+(defun org-drill--tag-question-list-children (card-type)
+  "Add q to qs direct child, adding CARD-TYPE to children."
   (let* ((curr-level (elt (org-heading-components) 0)))
     (org-map-entries
      (lambda()
        (let* ((this-tags (s-concat "" (elt (org-heading-components) 5)))
               (this-level (elt (org-heading-components) 0)))
          (when (not (s-contains? org-drill-question-parent-tag this-tags))
-           (org-drill--add-tag org-drill-question-tag))))
+           (progn
+             (if (not (eq card-type nil))
+                (org-set-property "DRILL_CARD_TYPE" card-type))
+             (org-drill--add-tag org-drill-question-tag)))))
      (s-concat "+LEVEL=" (number-to-string (+ 1 curr-level)) "+" org-drill-question-parent-tag "-" org-drill-question-tag)
      'tree)))
 
@@ -3919,8 +3922,8 @@ shuffling is done in place."
    (lambda()
      (let* ((this-tags (s-concat "" (elt (org-heading-components) 5))))
        (when (s-contains? org-drill-question-parent-tag this-tags)
-         (org-drill--tag-question-list-children))
-   (s-concat "+" org-drill-question-parent-tag "-" org-drill-question-tag)))))
+         (org-drill--tag-question-list-children (org-entry-get (point) "DRILL_CARD_TYPE" t)))
+       (s-concat "+" org-drill-question-parent-tag "-" org-drill-question-tag)))))
 
 (defun org-drill-last-session-report()
   "Print last session report."
