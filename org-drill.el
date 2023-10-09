@@ -1588,6 +1588,22 @@ the current topic."
                                 "have never reviewed."))
             prompt)))
 
+(defun org-drill--elapsed-message (item-start-time session-start-time)
+  "displays 00:00 - 00:00
+RETURNS: the time elapsed formatted
+ITEM-START-TIME: Guess.
+SESSION-START-TIME: Guess what.
+"
+  (let ((elapsed (time-subtract (current-time) item-start-time))
+        (session-elapsed (time-subtract (current-time) session-start-time)))
+    (concat
+        (if (>= (time-to-seconds elapsed) (* 60 60))
+                               "++:++ "
+                             (format-time-string "%M:%S/" elapsed))
+        (if (>= (time-to-seconds session-elapsed) (* 60 60))
+                               "++:++ "
+                             (format-time-string "%M:%S " session-elapsed)))))
+
 (defun org-drill-presentation-prompt  (session &optional prompt)
   "Create a card prompt with a timer and user-specified menu.
 
@@ -1619,6 +1635,7 @@ Arguments:
 PROMPT: A string that overrides the standard prompt.
 "
   (let* ((item-start-time (current-time))
+         (session-start-time (oref session start-time))
          (input nil)
          (ch nil)
          (prompt
@@ -1643,9 +1660,7 @@ Consider reformulating the item to make it easier to remember.\n"
       (setq ch nil)
       (while (not (input-pending-p))
         (let ((elapsed (time-subtract (current-time) item-start-time)))
-          (message (concat (if (>= (time-to-seconds elapsed) (* 60 60))
-                               "++:++ "
-                             (format-time-string "%M:%S " elapsed))
+          (message (concat (org-drill--elapsed-message item-start-time session-start-time)
                            full-prompt))
           (sit-for 1)))
       (setq input (org-drill--read-key-sequence nil))
