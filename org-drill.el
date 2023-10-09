@@ -2534,6 +2534,19 @@ maximum number of items."
         (setq
          m
          (cond
+          ;; Next priority is newly added items, and older entries.
+          ;; We pool these into a single group.
+          ((and (or (oref session new-entries)
+                    (oref session old-mature-entries))
+                (not (org-drill-maximum-item-count-reached-p session))
+                (not (org-drill-maximum-duration-reached-p session)))
+           (cond
+            ((< (cl-random (+ (length (oref session new-entries))
+                              (length (oref session old-mature-entries))))
+                (length (oref session new-entries)))
+             (org-drill-pop-random (oref session new-entries)))
+            (t
+             (org-drill-pop-random (oref session old-mature-entries)))))
           ;; First priority is items we failed in a prior session.
           ((and (oref session failed-entries)
                 (not (org-drill-maximum-item-count-reached-p session))
@@ -2552,19 +2565,6 @@ maximum number of items."
                 (not (org-drill-maximum-item-count-reached-p session))
                 (not (org-drill-maximum-duration-reached-p session)))
            (org-drill-pop-random (oref session young-mature-entries)))
-          ;; Next priority is newly added items, and older entries.
-          ;; We pool these into a single group.
-          ((and (or (oref session new-entries)
-                    (oref session old-mature-entries))
-                (not (org-drill-maximum-item-count-reached-p session))
-                (not (org-drill-maximum-duration-reached-p session)))
-           (cond
-            ((< (cl-random (+ (length (oref session new-entries))
-                              (length (oref session old-mature-entries))))
-                (length (oref session new-entries)))
-             (org-drill-pop-random (oref session new-entries)))
-            (t
-             (org-drill-pop-random (oref session old-mature-entries)))))
           ;; After all the above are done, last priority is items
           ;; that were failed earlier THIS SESSION.
           ((oref session again-entries)
