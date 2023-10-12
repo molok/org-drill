@@ -1551,7 +1551,7 @@ the current topic."
         (mature-entry-count (+ (length (oref session young-mature-entries))
                                (length (oref session old-mature-entries))
                                (length (oref session overdue-entries)))))
-    (format "%s %s %s %s %s %s"
+    (format "| (%s) | %s %s %s| %s %s %s %s"
             (propertize
              (char-to-string
               (cond
@@ -1568,21 +1568,38 @@ the current topic."
                         ((:overdue :failed) org-drill-failed-count-color)
                         (t org-drill-done-count-color))))
             (propertize
-             (number-to-string (length (oref session done-entries)))
+             (concat "DONE " (number-to-string (length (oref session done-entries))))
              'face `(:foreground ,org-drill-done-count-color)
-             'help-echo "The number of items you have reviewed this session.")
+             'help-echo "The number of items you have reviewed in this session.")
             (propertize
-             (number-to-string (+ (length (oref session again-entries))
-                                  (length (oref session failed-entries))))
+             (concat "FAIL "(number-to-string (length (oref session again-entries))))
+             'face `(:foreground ,org-drill-failed-count-color)
+             'help-echo "The number of items that you failed in this session.")
+            (propertize
+             (if (= 0 (+ (length (oref session done-entries)) (length (oref session again-entries)) ))
+                 ""
+               (concat
+                "("
+                (number-to-string
+                 (/
+                  (* 100 (length (oref session done-entries)))
+                  (+ (length (oref session done-entries)) (length (oref session again-entries)) )))
+                "%%) "))
+             'face `(:foreground ,org-drill-done-count-color)
+             'help-echo (concat "percentage of success entries "
+                                "in this session"))
+            (propertize
+             (concat "TOTFAIL "(number-to-string (+ (length (oref session again-entries))
+                                  (length (oref session failed-entries)))))
              'face `(:foreground ,org-drill-failed-count-color)
              'help-echo (concat "The number of items that you failed, "
                                 "and need to review again."))
             (propertize
-             (number-to-string mature-entry-count)
+             (concat "OLD " (number-to-string mature-entry-count))
              'face `(:foreground ,org-drill-mature-count-color)
              'help-echo "The number of old items due for review.")
             (propertize
-             (number-to-string (length (oref session new-entries)))
+             (concat "NEW " (number-to-string (length (oref session new-entries))))
              'face `(:foreground ,org-drill-new-count-color)
              'help-echo (concat "The number of new items that you "
                                 "have never reviewed."))
